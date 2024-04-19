@@ -1,13 +1,20 @@
 {
   "name": "little-es",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A simple, lightweight event sourcing library for js.",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
-  "repository": "https://github.com/YOUR_GITHUB_USER_NAME/little-es",
+  "repository": "https://github.com/dominikbb/little-es",
   "license": "MIT",
-  "keywords": [],
+  "keywords": [
+    "event sourcing",
+    "event store",
+    "cqrs",
+    "ddd",
+    "domain driven design",
+    "edge ready"
+  ],
   "scripts": {
     "build": "run-p build:*",
     "build:main": "tsc -p tsconfig.json",
@@ -36,13 +43,15 @@
     "doc:publish": "gh-pages -m \"[ci skip] Updates\" -d build/docs",
     "version": "standard-version",
     "reset-hard": "git clean -dfx && git reset --hard && yarn",
-    "prepare-release": "run-s reset-hard test cov:check doc:html version doc:publish"
+    "prepare-release": "run-s reset-hard test cov:check",
+    "test-coverage": "c8 ava"
   },
   "engines": {
     "node": ">=10"
   },
   "dependencies": {},
   "devDependencies": {
+    "c8": "^9.1.0",
     "@ava/typescript": "^1.1.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@typescript-eslint/eslint-plugin": "^4.0.1",

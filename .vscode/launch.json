@@ -25,5 +25,17 @@
       "outputCapture": "std",
       "skipFiles": ["<node_internals>/**/*.js"]
       // "smartStep": true
-    }]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug AVA test file",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["run", "ava"],
+      "args": ["${file}"],
+      "outputCapture": "std",
+      "console": "integratedTerminal", // optional
+      "skipFiles": ["<node_internals>/**/*.js"]
+    }
+  ]
 }
