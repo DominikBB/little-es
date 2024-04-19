@@ -8,6 +8,10 @@ import { Snapshot } from "./Snapshot";
  *
  * You should full-fill this type to create a custom event store, or you can use the existing ones.
  * 
+ * ### get(id) vs getAllEvents()
+ * - **get(id)** is used to retrieve the current state of an aggregate, or a projection, where the id is used as the *event subject* and the *snapshot id*. This function should **filter** out events based **on the subject**.
+ * - **getAllEvents(projectionName)** is used to retrieve all events for a projection, where the projectionName is used as the *snapshot id*. This function should return all events, **not filtered** by their subject. 
+ * 
  * ### Behavior expectations
  * The following behavior is expected from the PersistanceHandlers:
  * - ✅ ensure that they can **store and retrieve** events based on an **event subject field**

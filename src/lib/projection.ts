@@ -8,6 +8,17 @@ import { PersistedAggregate } from "../@types/PersistedAggregate";
 
 import { hydrateProjectionFromSnapshot, SafeArray, snapshotProjection } from "./util";
 
+/**
+ * Configuration options for the Projections.
+ * 
+ * @param projectionName - The name of the projection.
+ * @param defaultProjection - A default/empty instance of the projection, used before any events are applied.
+ * @param commandHandler - A function that takes a command and the current state of the aggregate and returns a result of processing, it can return some new events.
+ * @param eventHandler - A function that takes an event and the current state of the projection and returns the new state.
+ * @param persistanceHandler - A way to retrieve events.
+ * @param snapshotInfo - Snapshots could be considered similar to caching of state. It is best to leave snapshots out until you have a stable model that doesn't change often. 
+ * **frequency**: Defines how often per num./events a snapshot should be made. **aggregateVersion**: The version of the projection that the snapshot was taken at, useful for invalidating snapshots after model changes.
+ */
 export type ProjectionOptions<TPROJECTION, TEVENT extends BaseEvent> = {
     readonly projectionName: string,
     readonly defaultProjection: TPROJECTION,
@@ -17,33 +28,29 @@ export type ProjectionOptions<TPROJECTION, TEVENT extends BaseEvent> = {
 }
 
 /**
- * Creates an Aggregate, this is a starting point of all
- * of your event sourcing.
+ * Creates a named projection, this is an alternate view of state that can be identified.
+ * 
+ * eg. - in a shoe shop, if your Aggregate is a Shoe, your projection could be Sport shoes.
  *
- * @param serviceName - The name of the service, used for the source field in the cloud events.
- * @param defaultAggregate - A default/empty instance of the aggregate, used before any events are applied.
- * @param commandHandler - A function that takes a command and the current state of the aggregate and returns a result of processing, it can return some new events.
- * @param eventHandler - A function that takes an event and the current state of the aggregate and returns the new state of the aggregate.
- * @param persistanceHandler - A way to store and retrieve events.
- * @param snapshotFrequency How often should a snapshot of the aggregate be taken? **Defaults to 0** for easier development experience. Increasing the value is highly recommended for production.
- * @returns An `Aggregate` object.
+ * @param ProjectionOptions - Configuration of the projection
+ * @returns A `NamedProjection` object.
  * ---
 *
  * ### Example
  * ```ts
- * import { createAggregate } from 'little-es'
+ * import { createNamedProjection } from 'little-es'
 *
- * const productAggregate = createAggregate<Product, ProductCommand, ProductEvent>(
- *      "little-es-tests",
- *      { name: "", price: 0, id: '0', listed: false },
- *      async (agg, cmd) => commandHandlers[cmd.type](agg, cmd as any),
- *      (agg, ev) => eventHandlers[ev.type](agg, ev as any),
- *      mockPersistanceHandler
- *   )
+ * const productCategories = createNamedProjection<ProductCategory, ProductEvent>({}
+ *      projectionName: "productCategory",
+ *      defaultProjection: { name: string, products: Product[] },
+ *      eventHandler: (agg, ev) => eventHandlers[ev.type](agg, ev as any),
+ *      persistanceHandler: mockPersistanceHandler
+ *   })
  *
- * const newProduct = await productAggregate.push('1', { type: 'addProduct', name: 'test', id: '1' })
- * console.log(newProduct);
- * // -> {name: 'shoe', price: 100, stock: 0}
+ * // Fetch state
+ * const getCategories = await productCategories.get('shoes')
+ * console.log(getFromStorage);
+ * // -> {success: true, data: {name: 'shoes', products: [...]}}
  * ```
  *
 */
@@ -60,6 +67,34 @@ export function createNamedProjection<TPROJECTION, TEVENT extends BaseEvent>(
     }
 }
 
+/**
+ * Creates a global projection, this is an alternate view of state that is global and singular.
+ * These are useful for creating operational reports, but unlike aggregates, and named projections, they should not be used to store specific user's data.
+ * 
+ * eg. - in a shoe shop, you might create a projection LowStockProducts.
+ *
+ * @param ProjectionOptions - Configuration of the projection
+ * @returns A `GlobalProjection` object.
+ * ---
+*
+ * ### Example
+ * ```ts
+ * import { createGlobalProjection } from 'little-es'
+*
+ * const lowStock = createGlobalProjection<LowStockProducts, ProductEvent>(
+ *      projectionName: "lowStockProducts",
+ *      defaultProjection: { name: string, products: Product },
+ *      eventHandler: (agg, ev) => eventHandlers[ev.type](agg, ev as any),
+ *      persistanceHandler: mockPersistanceHandler
+ *   )
+ *
+ * // Fetch state
+ * const getLowStockProducts = await lowStock.get('shoes')
+ * console.log(getLowStockProducts);
+ * // -> {success: true, data: {products: [...]}}
+ * ```
+ *
+*/
 export function createGlobalProjection<TPROJECTION, TEVENT extends BaseEvent>(
     opt: ProjectionOptions<TPROJECTION, TEVENT>,
 ): GlobalProjection<TPROJECTION> {

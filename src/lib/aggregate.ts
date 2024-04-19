@@ -10,6 +10,18 @@ import { PublishingHandler } from "../@types/PublishingHandler";
 
 import { hydrateProjectionFromSnapshot, hydrateProjectionFromState, SafeArray, snapshotProjection } from "./util";
 
+/**
+ * Configuration options for the Aggregate.
+ * 
+ * @param serviceName - The name of the service, used for the source field in the cloud events.
+ * @param defaultAggregate - A default/empty instance of the aggregate, used before any events are applied.
+ * @param commandHandler - A function that takes a command and the current state of the aggregate and returns a result of processing, it can return some new events.
+ * @param eventHandler - A function that takes an event and the current state of the aggregate and returns the new state of the aggregate.
+ * @param persistanceHandler - A way to store and retrieve events.
+ * @param snapshotInformation - Snapshots could be considered similar to caching of state. It is best to leave snapshots out until you have a stable model that doesn't change often. 
+ * **frequency**: Defines how often per num./events a snapshot should be made. **aggregateVersion**: The version of the aggregate that the snapshot was taken at, useful for invalidating snapshots after model changes.
+ * @param publishingHandler - A function intended to publish events based on the current state and new events.
+ */
 type AggregateOptions<TAGGREGATE, TCOMMAND extends Command, TEVENT extends BaseEvent> = {
     readonly serviceName: string,
     readonly defaultAggregate: TAGGREGATE,
@@ -24,12 +36,7 @@ type AggregateOptions<TAGGREGATE, TCOMMAND extends Command, TEVENT extends BaseE
  * Creates an Aggregate, this is a starting point of all
  * of your event sourcing.
  *
- * @param serviceName - The name of the service, used for the source field in the cloud events.
- * @param defaultAggregate - A default/empty instance of the aggregate, used before any events are applied.
- * @param commandHandler - A function that takes a command and the current state of the aggregate and returns a result of processing, it can return some new events.
- * @param eventHandler - A function that takes an event and the current state of the aggregate and returns the new state of the aggregate.
- * @param persistanceHandler - A way to store and retrieve events.
- * @param snapshotFrequency How often should a snapshot of the aggregate be taken? **Defaults to 0** for easier development experience. Increasing the value is highly recommended for production.
+ * @param AggregateOptions - Define the configuration of the aggregate.
  * @returns An `Aggregate` object.
  * ---
  *
@@ -37,17 +44,17 @@ type AggregateOptions<TAGGREGATE, TCOMMAND extends Command, TEVENT extends BaseE
  * ```ts
  * import { createAggregate } from 'little-es'
  *
- * const productAggregate = createAggregate<Product, ProductCommand, ProductEvent>(
- *      "little-es-tests",
- *      { name: "", price: 0, id: '0', listed: false },
- *      async (agg, cmd) => commandHandlers[cmd.type](agg, cmd as any),
- *      (agg, ev) => eventHandlers[ev.type](agg, ev as any),
- *      mockPersistanceHandler
- *   )
+ * const productAggregate = createAggregate<Product, ProductCommand, ProductEvent>(config)
  *
- * const newProduct = await productAggregate.push('1', { type: 'addProduct', name: 'test', id: '1' })
- * console.log(newProduct);
- * // -> {name: 'shoe', price: 100, stock: 0}
+ * // Process a command
+ * const result = await productAggregate.push('1', { type: 'addProduct', name: 'shoe' })
+ * console.log(result);
+ * // -> {success: true, data: {name: 'shoe', price: 0, stock: 0}}
+ * 
+ * // Fetch state
+ * const getFromStorage = await productAggregate.get('1')
+ * console.log(getFromStorage);
+ * // -> {success: true, data: {name: 'shoe', price: 0, stock: 0}}
  * ```
  *
  */

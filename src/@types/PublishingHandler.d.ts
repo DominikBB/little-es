@@ -9,7 +9,7 @@ import { EventStoreResult, LittleEsEvent } from "./LittleEsEvent";
  * 
  * ### Suggested behavior
  * The following behavior is suggested for a PublishingHandler:
- * - ✅ use an outbox pattern to ensure event delivery, and deduplication.
+ * - ✅ use an outbox pattern to ensure event delivery.
  * - ✅ ensure **at most once** delivery to the destination
  * - ✅ ensure that the whole contents of the event are published to comply with CloudEvents spec., and any tracing or custom data is forwarded if it exists
  */
