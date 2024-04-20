@@ -2,9 +2,9 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dominikbb/little-es/npm-publish.yml)
 [![GitHub](https://img.shields.io/github/license/honojs/hono)](https://github.com/dominikbb/little-es/blob/main/LICENSE)
-[![npm](https://img.shields.io/npm/v/little-es)](https://www.npmjs.com/package/hono)
-[![Bundle Size](https://img.shields.io/bundlephobia/min/little-es)](https://bundlephobia.com/result?p=)
-[![Bundle Size](https://img.shields.io/bundlephobia/minzip/little-es)](https://bundlephobia.com/result?p=hono)
+[![npm](https://img.shields.io/npm/v/little-es)](https://www.npmjs.com/package/little-es)
+[![Bundle Size](https://img.shields.io/bundlephobia/min/little-es)](https://bundlephobia.com/result?p=little-es)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/little-es)](https://bundlephobia.com/result?p=little-es)
 [![npm type definitions](https://img.shields.io/npm/types/little-es)](https://www.npmjs.com/package/little-es)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dominikbb/little-es)](https://github.com/dominikbb/little-es/pulse)
 [![GitHub last commit](https://img.shields.io/github/last-commit/dominikbb/little-es)](https://github.com/dominikbb/little-es/commits/main)
