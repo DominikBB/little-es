@@ -1,19 +1,25 @@
 {
   "name": "little-es",
   "version": "0.1.0",
-  "description": "A simple, lightweight event sourcing library for js.",
+  "description": "A simple, lightweight event sourcing library for js/ts, where you can bring your own persistance and publishing methods.",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
   "repository": "https://github.com/dominikbb/little-es",
   "license": "MIT",
   "keywords": [
-    "event sourcing",
+    "event-sourcing",
+    "store",
+    "backend",
     "event store",
+    "database",
     "cqrs",
     "ddd",
     "domain driven design",
-    "edge ready"
+    "edge ready",
+    "cloudflare",
+    "bun",
+    "deno"
   ],
   "scripts": {
     "build": "run-p build:*",
@@ -42,7 +48,7 @@
     "prepare-release": "run-s reset-hard test cov:check"
   },
   "engines": {
-    "node": ">=10"
+    "node": ">=20"
   },
   "dependencies": {},
   "devDependencies": {
