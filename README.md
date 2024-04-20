@@ -1,8 +1,21 @@
 # little-es
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dominikbb/little-es/npm-publish.yml)
+[![GitHub](https://img.shields.io/github/license/honojs/hono)](https://github.com/dominikbb/little-es/blob/main/LICENSE)
+[![npm](https://img.shields.io/npm/v/little-es)](https://www.npmjs.com/package/hono)
+[![Bundle Size](https://img.shields.io/bundlephobia/min/little-es)](https://bundlephobia.com/result?p=)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/little-es)](https://bundlephobia.com/result?p=hono)
+[![npm type definitions](https://img.shields.io/npm/types/little-es)](https://www.npmjs.com/package/little-es)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dominikbb/little-es)](https://github.com/dominikbb/little-es/pulse)
+[![GitHub last commit](https://img.shields.io/github/last-commit/dominikbb/little-es)](https://github.com/dominikbb/little-es/commits/main)
+
 An event sourcing library for JS/TS.
 
 Crafted to stay **light, support edge runtime's, be 0 dependency, easily extensible**.
+
+```bash
+npm i little-es
+```
 
 What's in the box:
 
@@ -12,6 +25,8 @@ What's in the box:
 - Snapshot support
 - Projection handling
 - Aggregate & projection versioning
+- Based on CloudEvents specification
+- Nice error handling
 - **COMING SOON** - Ready made persistance and publishing layers
 
 # Page contents
@@ -27,10 +42,12 @@ What's in the box:
 - [Advanced usage](#advanced-usage)
   - [Creating a named projection](#creating-a-named-projection)
   - [Creating a global projection](#creating-a-global-projection)
-  - [Improving performance with snapshots](#improving-performance-with-snapshots)
-  - [Publishing events](#publishing-events)
-- [Design tips](#design-tips)
-- [FAQ](#faq)
+  - Improving performance with snapshots
+  - Publishing events
+- Design tips
+- FAQ
+  - CloudEvents spec
+  - Integrating with web frameworks
 
 # Why event sourcing?
 
@@ -162,10 +179,6 @@ const result = await todo.get('user1');
 console.log(result);
 // -> {success: true, data: {username: 'user1', todo: [{text: 'do something', done: false}]}}
 ```
-
-## Note on CloudEvents
-
-**TODO**
 
 # Advanced usage
 
