@@ -13,8 +13,42 @@ An event sourcing library for JS/TS.
 
 Crafted to stay **light, support edge runtime's, be 0 dependency, easily extensible**.
 
+⚠️ `little-es` is in early stages of development and future releases **will have breaking changes, features can be added or removed.**
+
 ```bash
 npm i little-es
+```
+
+Example use in a generic API router:
+
+```ts
+router.use('/*', (c, next) => {
+  const articleConfig = {
+    serviceName: 'my-blog-app',
+    defaultAggregate: defaultArticle,
+    commandHandler: articleCommandHandler,
+    eventHandler: articleEventHandler,
+    persistanceHandler: persistanceHandler,
+  };
+
+  c.articleAggregate = createAggregate<Article, Commands, Events>(
+    articleConfig
+  );
+
+  await next();
+});
+
+router.get('/comment/:id', (c) => {
+  return c.articleAggregate.get(c.req.params.get('id'));
+  // Gets the state of the article with id, and returns a result object
+  // -> {success: true, data:Article}
+  // -> {success: false, at:'..', error:'Not found'}
+});
+router.post('/comment/:id', (c) => {
+  return c.articleAggregate.push({ type: 'createArticle', article: c.body });
+  // Creates an article with some id and returns a result object
+  // -> {success: true, data:Article}
+});
 ```
 
 What's in the box:
@@ -22,8 +56,8 @@ What's in the box:
 - Command handling interfaces
 - Event persistance interfaces
 - Event publishing interfaces
-- Snapshot support
 - Projection handling
+- Snapshot support
 - Aggregate & projection versioning
 - Based on CloudEvents specification
 - Nice error handling
@@ -42,8 +76,9 @@ What's in the box:
 - [Advanced usage](#advanced-usage)
   - [Creating a named projection](#creating-a-named-projection)
   - [Creating a global projection](#creating-a-global-projection)
-  - Improving performance with snapshots
+  - [Improving performance with snapshots](#improving-performance-with-snapshots)
   - Publishing events
+  - [Persistance handler interface](#persistance-handler-interface)
 - Design tips
 - FAQ
   - CloudEvents spec
@@ -248,9 +283,78 @@ console.log(getLowStockProducts);
 
 ## Improving performance with snapshots
 
-**TODO**
+Snapshots capture the current state of your aggregate and projections, and will then be used as a performance optimization when reading state. Instead of having the aggregate apply all events that happened, it can start with a latest snapshot and apply events that happened after it.
+
+Keep in mind that snapshots are a bit like caching, and can become hard to manage as your data schema changes. `little-es` helps invalidate snapshots using versioning, however snapshots can still be considered as a bit of an anti-pattern in event sourcing.
+
+Snapshots are supported by Aggregate and all projections. You can add a snapshot information to configuration to enable them.
+
+```ts
+import { createGlobalProjection } from 'little-es'
+
+const lowStock = createGlobalProjection<LowStockProducts, ProductEvent>(
+     projectionName: "...",
+     defaultProjection: ...,
+     eventHandler: ...,
+     persistanceHandler: ...,
+     snapshotInformation: {frequency: 5, aggregateVersion: 1}
+  )
+```
+
+The above code will enable snapshots at a frequency of >5 events, and will tag the snapshot as version 1.
+
+- **Aggregate snapshots** are created **at command processing** time (when running .push())
+- **Projection snapshots** are created **at event handling** time (when running .get())
+
+**⚠️ Projection snapshots are unstable and should not be used**
+
+### On frequency
+
+Frequency does not guarantee that a snapshot exists exactly every 5 events because snapshots are created in different manner depending on a type of object aggregate/projection, and your handling implementation.
+
+For example, in an aggregate, _commands can produce more then 1 event but a snapshot is evaluated only after the command_ is handled.
+
+In a _projection, the snapshot is evaluated only after reading the state_, meaning that any amount of time/events can pass between the last snapshot and the moment your system calls .get()
+
+### Versions
+
+Versions should be moved up when you change the data schema of your aggregate/projection. This will cause `little-es` to ignore snapshots with the older version.
 
 ## Publishing events
+
+**TODO**
+
+## Persistance handler interface
+
+To create a persistance handler, you need to fullfil the below type:
+
+```ts
+export type PersistanceHandler<TAGGREGATE, TEVENT extends BaseEvent> = {
+  readonly save: (
+    events: readonly LittleEsEvent<TEVENT>[]
+  ) => Promise<EventStoreResult<null>>;
+  readonly get: (
+    id: string
+  ) => Promise<EventStoreResult<PersistedAggregate<TAGGREGATE, TEVENT>>>;
+  readonly getAllEvents: (
+    projectionName: string
+  ) => () => Promise<EventStoreResult<PersistedAggregate<TAGGREGATE, TEVENT>>>;
+  readonly snapshot: (
+    snapshot: Snapshot<TAGGREGATE>
+  ) => Promise<EventStoreResult<null>>;
+};
+```
+
+- **save** should just persist an array of events
+- **get** should get the latest snapshot (if exists), and the events newer then the snapshot. It should also only get events and snapshot where event.subject and snapshot.id are the same as the parameter id
+- **getAllEvents** should still filter out snapshots based on the id and parameter, but not filter out events in any way.
+- **snapshot** should just persist a snapshot object
+
+### Identifiers
+
+You should treat the `event.subject` as the main identifier of the object that produced the event (the aggregate identifier), while the `event.id` represents a sequential number of the event for that subject.
+
+## Publishing handler interface
 
 **TODO**
 
