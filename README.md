@@ -13,7 +13,7 @@ An event sourcing library for JS/TS.
 
 Crafted to stay **light, support edge runtime's, be 0 dependency, easily extensible**.
 
-⚠️ `little-es` is in early stages of development and future releases **will have breaking changes, features can be added or removed.**
+⚠️ `little-es` is in early stages of development and future releases are likely to **have breaking changes.**
 
 ```bash
 npm i little-es
@@ -56,9 +56,9 @@ What's in the box:
 - Command handling interfaces
 - Event persistance interfaces
 - Event publishing interfaces
-- Projection handling
-- Snapshot support
-- Aggregate & projection versioning
+- Projections handling
+- Projection snapshots
+- Projection versioning
 - Based on CloudEvents specification
 - Nice error handling
 - **COMING SOON** - Ready made persistance and publishing layers
@@ -283,11 +283,11 @@ console.log(getLowStockProducts);
 
 ## Improving performance with snapshots
 
-Snapshots capture the current state of your aggregate and projections, and will then be used as a performance optimization when reading state. Instead of having the aggregate apply all events that happened, it can start with a latest snapshot and apply events that happened after it.
+Snapshots capture the current state of your projections, and will then be used as a performance optimization when reading state. Instead of having the projection apply all events that happened each time its requested, it can start with a latest snapshot and apply events that happened after it.
 
 Keep in mind that snapshots are a bit like caching, and can become hard to manage as your data schema changes. `little-es` helps invalidate snapshots using versioning, however snapshots can still be considered as a bit of an anti-pattern in event sourcing.
 
-Snapshots are supported by Aggregate and all projections. You can add a snapshot information to configuration to enable them.
+You can add a snapshot information object to configuration to enable them.
 
 ```ts
 import { createGlobalProjection } from 'little-es'
@@ -297,28 +297,19 @@ const lowStock = createGlobalProjection<LowStockProducts, ProductEvent>(
      defaultProjection: ...,
      eventHandler: ...,
      persistanceHandler: ...,
-     snapshotInformation: {frequency: 5, aggregateVersion: 1}
+     snapshot: {frequency: 5, schemaVersion: 1}
   )
 ```
 
 The above code will enable snapshots at a frequency of >5 events, and will tag the snapshot as version 1.
 
-- **Aggregate snapshots** are created **at command processing** time (when running .push())
-- **Projection snapshots** are created **at event handling** time (when running .get())
-
-**⚠️ Projection snapshots are unstable and should not be used**
-
 ### On frequency
 
-Frequency does not guarantee that a snapshot exists exactly every 5 events because snapshots are created in different manner depending on a type of object aggregate/projection, and your handling implementation.
-
-For example, in an aggregate, _commands can produce more then 1 event but a snapshot is evaluated only after the command_ is handled.
-
-In a _projection, the snapshot is evaluated only after reading the state_, meaning that any amount of time/events can pass between the last snapshot and the moment your system calls .get()
+Frequency does not guarantee that a snapshot exists exactly every 5 events because they are only created upon invoking .get() on a projection. Since any amount of time can pass between these calls, any number of events can also pass.
 
 ### Versions
 
-Versions should be moved up when you change the data schema of your aggregate/projection. This will cause `little-es` to ignore snapshots with the older version.
+Versions should be moved up when you change the data schema of your projection. This will cause `little-es` to ignore snapshots with the older version.
 
 ## Publishing events
 
@@ -334,25 +325,23 @@ export type PersistanceHandler<TAGGREGATE, TEVENT extends BaseEvent> = {
     events: readonly LittleEsEvent<TEVENT>[]
   ) => Promise<EventStoreResult<null>>;
   readonly get: (
-    id: string
-  ) => Promise<EventStoreResult<PersistedAggregate<TAGGREGATE, TEVENT>>>;
-  readonly getAllEvents: (
+    subject: string
+  ) => Promise<EventStoreResult<readonly LittleEsEvent<TEVENT>[]>>;
+  readonly getProjection: (
     projectionName: string
-  ) => () => Promise<EventStoreResult<PersistedAggregate<TAGGREGATE, TEVENT>>>;
+  ) => (
+    id?: string
+  ) => Promise<EventStoreResult<PersistedProjection<TAGGREGATE, TEVENT>>>;
   readonly snapshot: (
     snapshot: Snapshot<TAGGREGATE>
   ) => Promise<EventStoreResult<null>>;
 };
 ```
 
-- **save** should just persist an array of events
-- **get** should get the latest snapshot (if exists), and the events newer then the snapshot. It should also only get events and snapshot where event.subject and snapshot.id are the same as the parameter id
-- **getAllEvents** should still filter out snapshots based on the id and parameter, but not filter out events in any way.
-- **snapshot** should just persist a snapshot object
-
-### Identifiers
-
-You should treat the `event.subject` as the main identifier of the object that produced the event (the aggregate identifier), while the `event.id` represents a sequential number of the event for that subject.
+- **save** should just persist an array of events, events are uniquely identifiable by combination of `id`, `source` attributes. The actual event should be persisted as a whole, so that users ability to extend the `little-es` events holds true.
+- **get** should get all events associated with a `subject`, this is used for hydrating an aggregate.
+- **getProjection** is used to hydrate a projection. It needs to make sure to return the latest snapshot if it exists, and if it does, return the events that are newer then the snapshot along side it.
+- **snapshot** should just persist a snapshot object, snapshots are uniquely identified by combination of `name`, `lastConsideredEvent`, `schemaVersion`
 
 ## Publishing handler interface
 
@@ -364,4 +353,11 @@ You should treat the `event.subject` as the main identifier of the object that p
 
 # FAQ
 
-**TODO**
+## CloudEvent specification
+
+All events persisted and published by `little-es` are wrapped in a CloudEvent specification compliant envelope, however the user of the library is also expected to comply to a degree.
+
+- `id` is composed by combining a sequence of the event based ono the `subject`, and the `subject`, so it will look like `id: sequenceNr_subject`. This is compliant with CloudEvent spec. as long as you make sure that the subject is a unique identifier within the context of a service.
+- `source` comes from the `serviceName` config. option in the aggregate configuration.
+- `type` is defined by your implementation (when you create your events extending the `BaseEvent`, which requires a `type` string)
+- `subject` is your aggregate id
