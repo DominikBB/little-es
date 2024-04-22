@@ -1,6 +1,6 @@
 import { BaseEvent } from "./BaseEvent";
 import { EventStoreResult, LittleEsEvent } from "./LittleEsEvent";
-import { PersistedAggregate } from "./PersistedAggregate";
+import { PersistedProjection } from "./PersistedAggregate";
 import { Snapshot } from "./Snapshot";
 
 /**
@@ -8,9 +8,9 @@ import { Snapshot } from "./Snapshot";
  *
  * You should full-fill this type to create a custom event store, or you can use the existing ones.
  * 
- * ### get(id) vs getAllEvents()
- * - **get(id)** is used to retrieve the current state of an aggregate, or a projection, where the id is used as the *event subject* and the *snapshot id*. This function should **filter** out events based **on the subject**.
- * - **getAllEvents(projectionName)** is used to retrieve all events for a projection, where the projectionName is used as the *snapshot id*. This function should return all events, **not filtered** by their subject. 
+ * ### get(subject) vs getProjection()
+ * - **get(subject)** is used to retrieve the current state of an aggregate based on its identification (subject).
+ * - **getProjection(projectionName)** is used to retrieve all events for a projection, when an id is supplied, it should be used to filter down a specific projection, otherwise the projection is unique only by its name. 
  * 
  * ### Behavior expectations
  * The following behavior is expected from the PersistanceHandlers:
@@ -21,7 +21,7 @@ import { Snapshot } from "./Snapshot";
  */
 export type PersistanceHandler<TAGGREGATE, TEVENT extends BaseEvent> = {
     readonly save: (events: readonly LittleEsEvent<TEVENT>[]) => Promise<EventStoreResult<null>>;
-    readonly get: (id: string) => Promise<EventStoreResult<PersistedAggregate<TAGGREGATE, TEVENT>>>;
-    readonly getAllEvents: (projectionName: string) => () => Promise<EventStoreResult<PersistedAggregate<TAGGREGATE, TEVENT>>>;
+    readonly get: (subject: string) => Promise<EventStoreResult<readonly LittleEsEvent<TEVENT>[]>>;
+    readonly getProjection: (projectionName: string) => (id?: string) => Promise<EventStoreResult<PersistedProjection<TAGGREGATE, TEVENT>>>;
     readonly snapshot: (snapshot: Snapshot<TAGGREGATE>) => Promise<EventStoreResult<null>>;
 };

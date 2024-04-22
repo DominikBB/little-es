@@ -4,7 +4,7 @@ import { GlobalProjection } from "../@types/GlobalProjection";
 import { EventStoreResult } from "../@types/LittleEsEvent";
 import { NamedProjection } from "../@types/NamedProjection";
 import { PersistanceHandler } from "../@types/PersistanceHandler";
-import { PersistedAggregate } from "../@types/PersistedAggregate";
+import { PersistedProjection } from "../@types/PersistedAggregate";
 
 import { hydrateProjectionFromSnapshot, SafeArray, snapshotProjection } from "./util";
 
@@ -16,15 +16,15 @@ import { hydrateProjectionFromSnapshot, SafeArray, snapshotProjection } from "./
  * @param commandHandler - A function that takes a command and the current state of the aggregate and returns a result of processing, it can return some new events.
  * @param eventHandler - A function that takes an event and the current state of the projection and returns the new state.
  * @param persistanceHandler - A way to retrieve events.
- * @param snapshotInfo - Snapshots could be considered similar to caching of state. It is best to leave snapshots out until you have a stable model that doesn't change often. 
- * **frequency**: Defines how often per num./events a snapshot should be made. **aggregateVersion**: The version of the projection that the snapshot was taken at, useful for invalidating snapshots after model changes.
+ * @param snapshot - Snapshots could be considered similar to caching of state. It is best to leave snapshots out until you have a stable model that doesn't change often. 
+ * **frequency**: Defines how often per num./events a snapshot should be made. **schemaVersion**: The version of the projection that the snapshot was taken at, useful for invalidating snapshots after model changes.
  */
 export type ProjectionOptions<TPROJECTION, TEVENT extends BaseEvent> = {
     readonly projectionName: string,
     readonly defaultProjection: TPROJECTION,
     readonly eventHandler: EventHandler<TPROJECTION, TEVENT>,
     readonly persistanceHandler: PersistanceHandler<TPROJECTION, TEVENT>,
-    readonly snapshotInfo?: { readonly frequency: number, readonly aggregateVersion: number },
+    readonly snapshot?: { readonly frequency: number, readonly schemaVersion: number },
 }
 
 /**
@@ -60,9 +60,10 @@ export function createNamedProjection<TPROJECTION, TEVENT extends BaseEvent>(
 
     return {
         get: getNamedProjectionWorkflow(
-            opt.persistanceHandler.get,
-            hydrateProjectionFromSnapshot(opt.defaultProjection, opt.eventHandler, opt.snapshotInfo?.aggregateVersion),
-            snapshotProjection(opt.persistanceHandler, opt.snapshotInfo)
+            opt.projectionName,
+            opt.persistanceHandler.getProjection(opt.projectionName),
+            hydrateProjectionFromSnapshot(opt.defaultProjection, opt.eventHandler, opt.snapshot?.schemaVersion),
+            snapshotProjection(opt.persistanceHandler, opt.snapshot)
         ),
     }
 }
@@ -101,18 +102,19 @@ export function createGlobalProjection<TPROJECTION, TEVENT extends BaseEvent>(
 
     return {
         get: getGlobalProjectionWorkflow(
-            opt.persistanceHandler.getAllEvents(opt.projectionName),
-            hydrateProjectionFromSnapshot(opt.defaultProjection, opt.eventHandler, opt.snapshotInfo?.aggregateVersion),
-            snapshotProjection(opt.persistanceHandler, opt.snapshotInfo),
+            opt.persistanceHandler.getProjection(opt.projectionName),
+            hydrateProjectionFromSnapshot(opt.defaultProjection, opt.eventHandler, opt.snapshot?.schemaVersion),
+            snapshotProjection(opt.persistanceHandler, opt.snapshot),
             opt.projectionName
         ),
     }
 }
 
 const getNamedProjectionWorkflow = <TPROJECTION, TEVENT extends BaseEvent>(
-    retrieveAggregateEvents: PersistanceHandler<TPROJECTION, TEVENT>['get'],
-    hydrateProjection: (state: PersistedAggregate<TPROJECTION, TEVENT>) => TPROJECTION,
-    snapshotProjection: (id: string, state: TPROJECTION, eventSequence: { readonly last: number; readonly current: number; }) => Promise<EventStoreResult<null>>,
+    projectionName: string,
+    retrieveAggregateEvents: (id?: string) => Promise<EventStoreResult<PersistedProjection<TPROJECTION, TEVENT>>>,
+    hydrateProjection: (state: PersistedProjection<TPROJECTION, TEVENT>) => TPROJECTION,
+    snapshotProjection: (projectionName: string, state: TPROJECTION, latestEventId: string, lastSnapshotEventId: string) => Promise<EventStoreResult<null>>,
 ) =>
     async (id: string): Promise<EventStoreResult<TPROJECTION>> => {
         const existingEventsResult = await retrieveAggregateEvents(id);
@@ -120,22 +122,22 @@ const getNamedProjectionWorkflow = <TPROJECTION, TEVENT extends BaseEvent>(
 
         const projection = hydrateProjection(existingEventsResult.data);
 
-        await snapshotProjection(
-            id,
-            projection,
-            {
-                last: existingEventsResult.data.snapshot?.eventSequence ?? 1,
-                current: SafeArray(existingEventsResult.data.events) ? parseInt(existingEventsResult.data.events.slice(-1)[0].id) : (existingEventsResult.data.snapshot?.eventSequence ?? 1)
-            }
-        );
+        if (SafeArray(existingEventsResult.data.events)) {
+            await snapshotProjection(
+                projectionName,
+                projection,
+                existingEventsResult.data.events.slice(-1)[0].id,
+                existingEventsResult.data.snapshot?.lastConsideredEvent ?? "a_1"
+            )
+        };
 
         return { success: true, data: projection };
     }
 
 const getGlobalProjectionWorkflow = <TPROJECTION, TEVENT extends BaseEvent>(
-    retrieveAggregateEvents: () => Promise<EventStoreResult<PersistedAggregate<TPROJECTION, TEVENT>>>,
-    hydrateProjection: (state: PersistedAggregate<TPROJECTION, TEVENT>) => TPROJECTION,
-    snapshotProjection: (id: string, state: TPROJECTION, eventSequence: { readonly last: number; readonly current: number; }) => Promise<EventStoreResult<null>>,
+    retrieveAggregateEvents: (id?: string) => Promise<EventStoreResult<PersistedProjection<TPROJECTION, TEVENT>>>,
+    hydrateProjection: (state: PersistedProjection<TPROJECTION, TEVENT>) => TPROJECTION,
+    snapshotProjection: (projectionName: string, state: TPROJECTION, latestEventId: string, lastSnapshotEventId: string) => Promise<EventStoreResult<null>>,
     projectionName: string
 ) =>
     async (): Promise<EventStoreResult<TPROJECTION>> => {
@@ -144,14 +146,14 @@ const getGlobalProjectionWorkflow = <TPROJECTION, TEVENT extends BaseEvent>(
 
         const projection = hydrateProjection(existingEventsResult.data);
 
-        await snapshotProjection(
-            projectionName,
-            projection,
-            {
-                last: existingEventsResult.data.snapshot?.eventSequence ?? 1,
-                current: SafeArray(existingEventsResult.data.events) ? parseInt(existingEventsResult.data.events.slice(-1)[0].id) : (existingEventsResult.data.snapshot?.eventSequence ?? 1)
-            }
-        );
+        if (SafeArray(existingEventsResult.data.events)) {
+            await snapshotProjection(
+                projectionName,
+                projection,
+                existingEventsResult.data.events.slice(-1)[0].id,
+                existingEventsResult.data.snapshot?.lastConsideredEvent ?? "a_1"
+            )
+        };
 
         return { success: true, data: projection };
     }

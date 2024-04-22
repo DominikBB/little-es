@@ -1,8 +1,9 @@
 import { BaseEvent } from "../@types/BaseEvent";
 import { EventHandler } from "../@types/EventHandler";
 import { EventStoreResult, LittleEsEvent } from "../@types/LittleEsEvent";
+import { ID_SEPARATOR } from "../@types/LittleEsEventMetadata";
 import { PersistanceHandler } from "../@types/PersistanceHandler";
-import { PersistedAggregate } from "../@types/PersistedAggregate";
+import { PersistedProjection } from "../@types/PersistedAggregate";
 
 export const SafeArray = (arr: readonly unknown[]) => arr?.length;
 
@@ -16,16 +17,16 @@ export function isEmpty<Obj extends Record<PropertyKey, unknown>>(obj: Obj) {
 export const hydrateProjectionFromSnapshot = <TPROJECTION, TEVENT extends BaseEvent>(
     defaultProjection: TPROJECTION,
     eventHandler: EventHandler<TPROJECTION, TEVENT>,
-    currentAggregateVersion?: number
+    currentSchemaVersion?: number
 ) =>
-    (state: PersistedAggregate<TPROJECTION, TEVENT>) =>
+    (state: PersistedProjection<TPROJECTION, TEVENT>) =>
         state.events.reduce(
             (agg, e) => eventHandler(agg, e),
-            (state.snapshot && hasValidSnapshot(state, currentAggregateVersion)
+            (state.snapshot && hasValidSnapshot(state, currentSchemaVersion)
                 ? state.snapshot.state
                 : defaultProjection))
 
-export const hydrateProjectionFromState = <TPROJECTION, TEVENT extends BaseEvent>(
+export const hydrateAggregate = <TPROJECTION, TEVENT extends BaseEvent>(
     defaultProjection: TPROJECTION,
     eventHandler: EventHandler<TPROJECTION, TEVENT>,
 ) =>
@@ -34,12 +35,18 @@ export const hydrateProjectionFromState = <TPROJECTION, TEVENT extends BaseEvent
             (agg, e) => eventHandler(agg, e),
             (state && !isEmpty(state) ? state : defaultProjection))
 
-export const snapshotProjection = <TPROJECTION, TEVENT extends BaseEvent>(persistanceHandler: PersistanceHandler<TPROJECTION, TEVENT>, snapshotInfo?: { readonly frequency: number, readonly aggregateVersion: number }) =>
-    async (id: string, state: TPROJECTION, eventSequence: { readonly last: number, readonly current: number }): Promise<EventStoreResult<null>> =>
-        snapshotInfo && eventSequence.current - eventSequence.last >= snapshotInfo.frequency
-            ? persistanceHandler.snapshot({ id: id, eventSequence: eventSequence.current, state: state, aggregateVersion: snapshotInfo.aggregateVersion })
+export const snapshotProjection = <TPROJECTION, TEVENT extends BaseEvent>(persistanceHandler: PersistanceHandler<TPROJECTION, TEVENT>, config?: { readonly frequency: number, readonly schemaVersion: number }) =>
+    async (projectionName: string, state: TPROJECTION, latestEventId: string, lastSnapshotEventId: string): Promise<EventStoreResult<null>> =>
+        config
+            && validateEventId(latestEventId)
+            && validateEventId(lastSnapshotEventId)
+            && extractEventSequenceId(latestEventId) - extractEventSequenceId(lastSnapshotEventId) >= config.frequency
+            ? persistanceHandler.snapshot({ name: projectionName, lastConsideredEvent: latestEventId, state: state, schemaVersion: config.schemaVersion })
             : Promise.resolve({ success: true, data: null }
             );
 
-const hasValidSnapshot = <TPROJECTION, TEVENT extends BaseEvent>(state: PersistedAggregate<TPROJECTION, TEVENT>, currentAggregateVersion: number | undefined) =>
-    state.snapshot && currentAggregateVersion && !isEmpty(state.snapshot) && state.snapshot.aggregateVersion === currentAggregateVersion;
+const hasValidSnapshot = <TPROJECTION, TEVENT extends BaseEvent>(state: PersistedProjection<TPROJECTION, TEVENT>, currentSchemaVersion: number | undefined) =>
+    state.snapshot && currentSchemaVersion && !isEmpty(state.snapshot) && state.snapshot.schemaVersion === currentSchemaVersion;
+
+export const validateEventId = (id: string) => id.split(ID_SEPARATOR).length === 2 && parseInt(id.split(ID_SEPARATOR)[0]) > 0;
+export const extractEventSequenceId = (id: string) => parseInt(id.split(ID_SEPARATOR)[0]);

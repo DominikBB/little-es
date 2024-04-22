@@ -10,6 +10,8 @@ import { LittleEsEvent } from "../@types/LittleEsEvent"
 import { PersistanceHandler } from "../@types/PersistanceHandler"
 import { Snapshot } from "../@types/Snapshot"
 
+import { extractEventSequenceId, validateEventId } from "./util"
+
 export type Product = {
     readonly id: string,
     readonly name: string,
@@ -72,14 +74,21 @@ export const mockPersistanceHandler = <TAGGREGATE, TEVENT extends BaseEvent>(c: 
         return { success: true, data: null }
     },
     get: async (id) => {
-        const snapshot = c.context.snapshots.find(snapshot => snapshot.id === id)
-        const events = c.context.events.filter(event => event.subject === id && (snapshot?.eventSequence ?? 0) < parseInt(event.id))
+        const events = c.context.events.filter(event => event.subject === id)
 
-        return Promise.resolve({ success: true, data: { id: id, snapshot: snapshot ?? {} as Snapshot<TAGGREGATE>, events } })
+        return Promise.resolve({ success: true, data: events })
     },
-    getAllEvents: (projection) => async () => {
-        const snapshot = c.context.snapshots.find(snapshot => snapshot.id === projection)
-        const events = c.context.events.filter(event => (snapshot?.eventSequence ?? 0) < parseInt(event.id))
+    getProjection: (projection) => async (id?: string) => {
+        const searchOn = id ?? projection
+
+        const maybePreviousSnapshot = (i?: string) => {
+            if (!i) return 0
+            if (id) return validateEventId(i) ? extractEventSequenceId(i) : 0
+            return 0
+        }
+
+        const snapshot = c.context.snapshots.find(snapshot => snapshot.name === searchOn)
+        const events = c.context.events.filter(event => maybePreviousSnapshot(snapshot?.lastConsideredEvent) < parseInt(event.id))
 
         return Promise.resolve({ success: true, data: { id: projection, snapshot: snapshot ?? {} as Snapshot<TAGGREGATE>, events } })
     },
@@ -94,7 +103,7 @@ export function projectionTestEventData(): LittleEsEvent<ProductEvent>[] {
         {
             data: { name: 'test', id: '1' },
             datacontenttype: 'json',
-            id: '2',
+            id: '2_1',
             littleEs: { littleEsVersion: 1, is: 'PrivateEvent' },
             source: 'little-es-tests',
             specversion: '1.0',
@@ -105,7 +114,7 @@ export function projectionTestEventData(): LittleEsEvent<ProductEvent>[] {
         {
             data: { price: 200 },
             datacontenttype: 'json',
-            id: '3',
+            id: '3_1',
             littleEs: { littleEsVersion: 1, is: 'PrivateEvent' },
             source: 'little-es-tests',
             specversion: '1.0',
@@ -116,7 +125,7 @@ export function projectionTestEventData(): LittleEsEvent<ProductEvent>[] {
         {
             data: { price: 201 },
             datacontenttype: 'json',
-            id: '4',
+            id: '4_1',
             littleEs: { littleEsVersion: 1, is: 'PrivateEvent' },
             source: 'little-es-tests',
             specversion: '1.0',
@@ -127,7 +136,7 @@ export function projectionTestEventData(): LittleEsEvent<ProductEvent>[] {
         {
             data: { price: 202 },
             datacontenttype: 'json',
-            id: '5',
+            id: '5_1',
             littleEs: { littleEsVersion: 1, is: 'PrivateEvent' },
             source: 'little-es-tests',
             specversion: '1.0',
@@ -138,7 +147,7 @@ export function projectionTestEventData(): LittleEsEvent<ProductEvent>[] {
         {
             data: { price: 203 },
             datacontenttype: 'json',
-            id: '6',
+            id: '6_1',
             littleEs: { littleEsVersion: 1, is: 'PrivateEvent' },
             source: 'little-es-tests',
             specversion: '1.0',
@@ -149,7 +158,7 @@ export function projectionTestEventData(): LittleEsEvent<ProductEvent>[] {
         {
             data: { price: 204 },
             datacontenttype: 'json',
-            id: '7',
+            id: '7_1',
             littleEs: { littleEsVersion: 1, is: 'PrivateEvent' },
             source: 'little-es-tests',
             specversion: '1.0',
@@ -160,7 +169,7 @@ export function projectionTestEventData(): LittleEsEvent<ProductEvent>[] {
         {
             data: { price: 205 },
             datacontenttype: 'json',
-            id: '8',
+            id: '8_1',
             littleEs: { littleEsVersion: 1, is: 'PrivateEvent' },
             source: 'little-es-tests',
             specversion: '1.0',

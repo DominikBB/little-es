@@ -4,11 +4,11 @@ import { Command } from "../@types/Command";
 import { CommandHandler } from "../@types/CommandHandler";
 import { EventHandler } from "../@types/EventHandler";
 import { EventStoreResult, LittleEsEvent } from "../@types/LittleEsEvent";
+import { ID_SEPARATOR } from "../@types/LittleEsEventMetadata";
 import { PersistanceHandler } from "../@types/PersistanceHandler";
-import { PersistedAggregate } from "../@types/PersistedAggregate";
 import { PublishingHandler } from "../@types/PublishingHandler";
 
-import { hydrateProjectionFromSnapshot, hydrateProjectionFromState, SafeArray, snapshotProjection } from "./util";
+import { hydrateAggregate, SafeArray } from "./util";
 
 /**
  * Configuration options for the Aggregate.
@@ -18,8 +18,6 @@ import { hydrateProjectionFromSnapshot, hydrateProjectionFromState, SafeArray, s
  * @param commandHandler - A function that takes a command and the current state of the aggregate and returns a result of processing, it can return some new events.
  * @param eventHandler - A function that takes an event and the current state of the aggregate and returns the new state of the aggregate.
  * @param persistanceHandler - A way to store and retrieve events.
- * @param snapshotInformation - Snapshots could be considered similar to caching of state. It is best to leave snapshots out until you have a stable model that doesn't change often. 
- * **frequency**: Defines how often per num./events a snapshot should be made. **aggregateVersion**: The version of the aggregate that the snapshot was taken at, useful for invalidating snapshots after model changes.
  * @param publishingHandler - A function intended to publish events based on the current state and new events.
  */
 type AggregateOptions<TAGGREGATE, TCOMMAND extends Command, TEVENT extends BaseEvent> = {
@@ -28,7 +26,6 @@ type AggregateOptions<TAGGREGATE, TCOMMAND extends Command, TEVENT extends BaseE
     readonly commandHandler: CommandHandler<TAGGREGATE, TCOMMAND, TEVENT>,
     readonly eventHandler: EventHandler<TAGGREGATE, TEVENT>,
     readonly persistanceHandler: PersistanceHandler<TAGGREGATE, TEVENT>,
-    readonly snapshotInformation?: { readonly frequency: number, readonly aggregateVersion: number },
     readonly publishingHandler?: PublishingHandler<TAGGREGATE, TEVENT>
 }
 
@@ -65,38 +62,34 @@ export function createAggregate<TAGGREGATE, TCOMMAND extends Command, TEVENT ext
     return {
         push: handleCommandWorkflow(
             opt.persistanceHandler.get,
-            hydrateProjectionFromSnapshot(opt.defaultAggregate, opt.eventHandler, opt.snapshotInformation?.aggregateVersion),
-            hydrateProjectionFromState(opt.defaultAggregate, opt.eventHandler),
+            hydrateAggregate(opt.defaultAggregate, opt.eventHandler),
             opt.commandHandler,
             littleEsEventBuilder(opt.serviceName),
             opt.persistanceHandler.save,
-            snapshotProjection(opt.persistanceHandler, opt.snapshotInformation),
             opt.publishingHandler ?? opt.publishingHandler
         ),
         get: getAggregateWorkflow(
             opt.persistanceHandler.get,
-            hydrateProjectionFromSnapshot(opt.defaultAggregate, opt.eventHandler, opt.snapshotInformation?.aggregateVersion),
+            hydrateAggregate(opt.defaultAggregate, opt.eventHandler),
         ),
     }
 }
 
 const handleCommandWorkflow = <TAGGREGATE, TCOMMAND extends Command, TEVENT extends BaseEvent>(
     retrieveAggregateEvents: PersistanceHandler<TAGGREGATE, TEVENT>['get'],
-    hydrateAggregateFromSnapshot: (state: PersistedAggregate<TAGGREGATE, TEVENT>) => TAGGREGATE,
     hydrateAggregateFromState: (events: readonly LittleEsEvent<TEVENT>[], state?: TAGGREGATE) => TAGGREGATE,
     handleCommand: CommandHandler<TAGGREGATE, TCOMMAND, TEVENT>,
     createLittleEsEvents: (events: readonly TEVENT[], sequentialId: number, aggregateId: string) => readonly LittleEsEvent<TEVENT>[],
     storeEvents: PersistanceHandler<TAGGREGATE, TEVENT>['save'],
-    snapshotAggregate: (id: string, state: TAGGREGATE, eventSequence: { readonly last: number, readonly current: number }) => Promise<EventStoreResult<null>>,
     publishingHandler?: PublishingHandler<TAGGREGATE, TEVENT>
 ) => async (id: string, command: TCOMMAND): Promise<EventStoreResult<TAGGREGATE>> => {
 
     const existingEventsResult = await retrieveAggregateEvents(id);
     if (!existingEventsResult.success) return existingEventsResult;
 
-    const lastEventSequenceId = SafeArray(existingEventsResult.data.events) ? parseInt(existingEventsResult.data.events.slice(-1)[0].id) : (existingEventsResult.data.snapshot?.eventSequence ?? 1);
+    const lastEventSequenceId = SafeArray(existingEventsResult.data) ? parseInt(existingEventsResult.data.slice(-1)[0].id) : 1;
 
-    const currentAggregate = hydrateAggregateFromSnapshot(existingEventsResult.data);
+    const currentAggregate = hydrateAggregateFromState(existingEventsResult.data);
 
     const newBaseEvents = await handleCommand(currentAggregate, command);
     if (!newBaseEvents.success) return newBaseEvents;
@@ -107,21 +100,10 @@ const handleCommandWorkflow = <TAGGREGATE, TCOMMAND extends Command, TEVENT exte
     const persist = await storeEvents(newEvents as readonly LittleEsEvent<TEVENT>[])
     if (!persist.success) return persist;
 
-    const newAggregate = hydrateAggregateFromState([...existingEventsResult.data.events, ...newEvents], currentAggregate);
+    const newAggregate = hydrateAggregateFromState([...existingEventsResult.data, ...newEvents], currentAggregate);
 
     if (publishingHandler) {
-        await Promise.all([
-            await snapshotAggregate(id, newAggregate, {
-                last: existingEventsResult.data.snapshot?.eventSequence ?? 1,
-                current: parseInt(newEvents.slice(-1)[0].id)
-            }),
-            await publishingHandler(newAggregate, newEvents)
-        ]);
-    } else {
-        await snapshotAggregate(id, newAggregate, {
-            last: existingEventsResult.data.snapshot?.eventSequence ?? 1,
-            current: parseInt(newEvents.slice(-1)[0].id)
-        });
+        await publishingHandler(newAggregate, newEvents)
     }
 
     return { success: true, data: newAggregate };
@@ -129,7 +111,7 @@ const handleCommandWorkflow = <TAGGREGATE, TCOMMAND extends Command, TEVENT exte
 
 const getAggregateWorkflow = <TAGGREGATE, TEVENT extends BaseEvent>(
     retrieveAggregateEvents: PersistanceHandler<TAGGREGATE, TEVENT>['get'],
-    hydrateAggregate: (state: PersistedAggregate<TAGGREGATE, TEVENT>) => TAGGREGATE,
+    hydrateAggregate: (events: readonly LittleEsEvent<TEVENT>[], state?: TAGGREGATE) => TAGGREGATE,
 ) =>
     async (id: string): Promise<EventStoreResult<TAGGREGATE>> => {
         const existingEventsResult = await retrieveAggregateEvents(id);
@@ -143,7 +125,7 @@ const littleEsEventBuilder = (serviceName: string) =>
         return events.map((e, i) => ({
             ...e,
             subject: aggregateId,
-            id: (i + 1 + sequentialId).toString(),
+            id: (i + 1 + sequentialId).toString() + ID_SEPARATOR + aggregateId,
             specversion: "1.0",
             time: new Date().toISOString(),
             datacontenttype: "json",

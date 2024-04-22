@@ -20,7 +20,7 @@ globalProjectionTests.beforeEach(t => {
         defaultProjection: { count: 0 },
         eventHandler: (agg, _) => ({ count: agg.count + 1 }),
         persistanceHandler: mockPersistanceHandler(t),
-        snapshotInfo: { frequency: 4, aggregateVersion: 1 }
+        snapshot: { frequency: 4, schemaVersion: 1 }
     })
 
     t.context.events = projectionTestEventData()
@@ -42,12 +42,12 @@ globalProjectionTests("it can create a global projection out of snapshots and ev
     const snapshotAtSequence = 5
 
     t.context.snapshots.push({
-        id: 'ProductHistoryProjection',
-        eventSequence: parseInt(projectionTestEventData()[snapshotAtSequence].id),
+        name: 'ProductHistoryProjection',
+        lastConsideredEvent: projectionTestEventData()[snapshotAtSequence].id,
         state: {
             count: 1
         },
-        aggregateVersion: 1
+        schemaVersion: 1
     })
 
     const result = await t.context.sut.get()

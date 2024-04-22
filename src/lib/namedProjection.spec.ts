@@ -9,7 +9,11 @@ import { Snapshot } from '../@types/Snapshot';
 import { createNamedProjection } from './projection';
 import { mockPersistanceHandler, ProductEvent, ProductHistoryProjection, projectionTestEventData } from './testdata.spec';
 
-const namedProjectionTests = anyTest as TestInterface<{ events: LittleEsEvent<ProductEvent>[], snapshots: Snapshot<ProductHistoryProjection>[], sut: NamedProjection<ProductHistoryProjection> }>;
+const namedProjectionTests = anyTest as TestInterface<{
+    events: LittleEsEvent<ProductEvent>[],
+    snapshots: Snapshot<ProductHistoryProjection>[],
+    sut: NamedProjection<ProductHistoryProjection>
+}>;
 
 namedProjectionTests.beforeEach(t => {
     t.context.events = []
@@ -20,7 +24,7 @@ namedProjectionTests.beforeEach(t => {
         defaultProjection: { list: [] as readonly ProductEvent[], lastChangedAt: "" },
         eventHandler: (agg, ev) => ({ list: [...agg.list, ev], lastChangedAt: ev.time }),
         persistanceHandler: mockPersistanceHandler(t),
-        snapshotInfo: { frequency: 4, aggregateVersion: 1 }
+        snapshot: { frequency: 4, schemaVersion: 1 }
     })
 
     t.context.events = projectionTestEventData()
@@ -42,13 +46,13 @@ namedProjectionTests("it can create a named projection out of events", async (t)
 namedProjectionTests("it can create a named projection out of snapshots and events", async (t) => {
     const snapshotAtSequence = 5
     t.context.snapshots.push({
-        id: '1',
-        eventSequence: parseInt(projectionTestEventData()[snapshotAtSequence].id),
+        name: '1',
+        lastConsideredEvent: projectionTestEventData()[snapshotAtSequence].id,
         state: {
             list: [],
             lastChangedAt: projectionTestEventData()[snapshotAtSequence].time
         },
-        aggregateVersion: 1
+        schemaVersion: 1
     })
 
     const result = await t.context.sut.get('1')
