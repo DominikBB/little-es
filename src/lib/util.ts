@@ -1,8 +1,8 @@
-import { BaseEvent } from "../@types/BaseEvent";
-import { EventHandler } from "../@types/EventHandler";
-import { EventStoreResult, LittleEsEvent } from "../@types/LittleEsEvent";
-import { PersistanceHandler } from "../@types/PersistanceHandler";
-import { PersistedProjection } from "../@types/PersistedAggregate";
+import { BaseEvent } from "../types/BaseEvent";
+import { EventHandler } from "../types/EventHandler";
+import { EventStoreResult, LittleEsEvent } from "../types/LittleEsEvent";
+import { PersistanceHandler } from "../types/PersistanceHandler";
+import { PersistedProjection } from "../types/PersistedAggregate";
 
 export const SafeArray = (arr: readonly unknown[]) => arr?.length;
 

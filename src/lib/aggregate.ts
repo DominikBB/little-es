@@ -1,11 +1,11 @@
-import { Aggregate } from "../@types/Aggregate";
-import { BaseEvent } from "../@types/BaseEvent";
-import { Command } from "../@types/Command";
-import { CommandHandler } from "../@types/CommandHandler";
-import { EventHandler } from "../@types/EventHandler";
-import { EventStoreResult, LittleEsEvent } from "../@types/LittleEsEvent";
-import { PersistanceHandler } from "../@types/PersistanceHandler";
-import { PublishingHandler } from "../@types/PublishingHandler";
+import { Aggregate } from "../types/Aggregate";
+import { BaseEvent } from "../types/BaseEvent";
+import { Command } from "../types/Command";
+import { CommandHandler } from "../types/CommandHandler";
+import { EventHandler } from "../types/EventHandler";
+import { EventStoreResult, LittleEsEvent } from "../types/LittleEsEvent";
+import { PersistanceHandler } from "../types/PersistanceHandler";
+import { PublishingHandler } from "../types/PublishingHandler";
 
 import { hydrateAggregate, ID_SEPARATOR, SafeArray } from "./util";
 

@@ -3,12 +3,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ExecutionContext } from "ava"
 
-import { BaseEvent } from "../@types/BaseEvent"
-import { CommandHandlerEnum } from "../@types/CommandHandlerEnum"
-import { EventHandlerEnum } from "../@types/EventHandlerEnum"
-import { LittleEsEvent } from "../@types/LittleEsEvent"
-import { PersistanceHandler } from "../@types/PersistanceHandler"
-import { Snapshot } from "../@types/Snapshot"
+import { BaseEvent } from "../types/BaseEvent"
+import { CommandHandlerEnum } from "../types/CommandHandlerEnum"
+import { EventHandlerEnum } from "../types/EventHandlerEnum"
+import { LittleEsEvent } from "../types/LittleEsEvent"
+import { PersistanceHandler } from "../types/PersistanceHandler"
+import { Snapshot } from "../types/Snapshot"
 
 import { extractEventSequenceId, validateEventId } from "./util"
 

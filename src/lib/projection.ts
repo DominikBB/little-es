@@ -1,10 +1,10 @@
-import { BaseEvent } from "../@types/BaseEvent";
-import { EventHandler } from "../@types/EventHandler";
-import { GlobalProjection } from "../@types/GlobalProjection";
-import { EventStoreResult } from "../@types/LittleEsEvent";
-import { NamedProjection } from "../@types/NamedProjection";
-import { PersistanceHandler } from "../@types/PersistanceHandler";
-import { PersistedProjection } from "../@types/PersistedAggregate";
+import { BaseEvent } from "../types/BaseEvent";
+import { EventHandler } from "../types/EventHandler";
+import { GlobalProjection } from "../types/GlobalProjection";
+import { EventStoreResult } from "../types/LittleEsEvent";
+import { NamedProjection } from "../types/NamedProjection";
+import { PersistanceHandler } from "../types/PersistanceHandler";
+import { PersistedProjection } from "../types/PersistedAggregate";
 
 import { hydrateProjectionFromSnapshot, SafeArray, snapshotProjection } from "./util";
 

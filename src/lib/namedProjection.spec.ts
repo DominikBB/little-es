@@ -2,9 +2,9 @@
 /* eslint-disable functional/prefer-readonly-type */
 import anyTest, { TestFn } from 'ava';
 
-import { LittleEsEvent } from '../@types/LittleEsEvent';
-import { NamedProjection } from '../@types/NamedProjection';
-import { Snapshot } from '../@types/Snapshot';
+import { LittleEsEvent } from '../types/LittleEsEvent';
+import { NamedProjection } from '../types/NamedProjection';
+import { Snapshot } from '../types/Snapshot';
 
 import { createNamedProjection } from './projection';
 import { mockPersistanceHandler, ProductEvent, ProductHistoryProjection, projectionTestEventData } from './testdata.spec';

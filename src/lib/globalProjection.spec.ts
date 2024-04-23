@@ -2,9 +2,9 @@
 /* eslint-disable functional/prefer-readonly-type */
 import anyTest, { TestFn } from 'ava';
 
-import { GlobalProjection } from '../@types/GlobalProjection';
-import { LittleEsEvent } from '../@types/LittleEsEvent';
-import { Snapshot } from '../@types/Snapshot';
+import { GlobalProjection } from '../types/GlobalProjection';
+import { LittleEsEvent } from '../types/LittleEsEvent';
+import { Snapshot } from '../types/Snapshot';
 
 import { createGlobalProjection } from './projection';
 import { mockPersistanceHandler, ProductEvent, ProductPriceChangesGlobalProjection, projectionTestEventData } from './testdata.spec';
