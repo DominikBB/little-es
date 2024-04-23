@@ -83,8 +83,7 @@ export const mockPersistanceHandler = <TAGGREGATE, TEVENT extends BaseEvent>(c: 
 
         const maybePreviousSnapshot = (i?: string) => {
             if (!i) return 0
-            if (id) return validateEventId(i) ? extractEventSequenceId(i) : 0
-            return 0
+            return validateEventId(i) ? extractEventSequenceId(i) : 0
         }
 
         const snapshot = c.context.snapshots.find(snapshot => snapshot.name === searchOn)

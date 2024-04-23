@@ -11,5 +11,3 @@ export type LittleEsEventMetadata = {
         readonly is: "PrivateEvent" | "PublicEvent" | "NamedProjection" | "GlobalProjection" | "AggregateSnapshot";
     };
 };
-
-export const ID_SEPARATOR = "_";

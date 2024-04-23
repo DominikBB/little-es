@@ -1,7 +1,6 @@
 import { BaseEvent } from "../@types/BaseEvent";
 import { EventHandler } from "../@types/EventHandler";
 import { EventStoreResult, LittleEsEvent } from "../@types/LittleEsEvent";
-import { ID_SEPARATOR } from "../@types/LittleEsEventMetadata";
 import { PersistanceHandler } from "../@types/PersistanceHandler";
 import { PersistedProjection } from "../@types/PersistedAggregate";
 
@@ -48,5 +47,7 @@ export const snapshotProjection = <TPROJECTION, TEVENT extends BaseEvent>(persis
 const hasValidSnapshot = <TPROJECTION, TEVENT extends BaseEvent>(state: PersistedProjection<TPROJECTION, TEVENT>, currentSchemaVersion: number | undefined) =>
     state.snapshot && currentSchemaVersion && !isEmpty(state.snapshot) && state.snapshot.schemaVersion === currentSchemaVersion;
 
-export const validateEventId = (id: string) => id.split(ID_SEPARATOR).length === 2 && parseInt(id.split(ID_SEPARATOR)[0]) > 0;
+export const validateEventId = (id: string) => id.split(ID_SEPARATOR).length >= 2 && parseInt(id.split(ID_SEPARATOR)[0]) > 0;
 export const extractEventSequenceId = (id: string) => parseInt(id.split(ID_SEPARATOR)[0]);
+
+export const ID_SEPARATOR = "_";

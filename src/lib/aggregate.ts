@@ -4,11 +4,10 @@ import { Command } from "../@types/Command";
 import { CommandHandler } from "../@types/CommandHandler";
 import { EventHandler } from "../@types/EventHandler";
 import { EventStoreResult, LittleEsEvent } from "../@types/LittleEsEvent";
-import { ID_SEPARATOR } from "../@types/LittleEsEventMetadata";
 import { PersistanceHandler } from "../@types/PersistanceHandler";
 import { PublishingHandler } from "../@types/PublishingHandler";
 
-import { hydrateAggregate, SafeArray } from "./util";
+import { hydrateAggregate, ID_SEPARATOR, SafeArray } from "./util";
 
 /**
  * Configuration options for the Aggregate.

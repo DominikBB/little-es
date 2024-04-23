@@ -60,7 +60,6 @@ export function createNamedProjection<TPROJECTION, TEVENT extends BaseEvent>(
 
     return {
         get: getNamedProjectionWorkflow(
-            opt.projectionName,
             opt.persistanceHandler.getProjection(opt.projectionName),
             hydrateProjectionFromSnapshot(opt.defaultProjection, opt.eventHandler, opt.snapshot?.schemaVersion),
             snapshotProjection(opt.persistanceHandler, opt.snapshot)
@@ -111,7 +110,6 @@ export function createGlobalProjection<TPROJECTION, TEVENT extends BaseEvent>(
 }
 
 const getNamedProjectionWorkflow = <TPROJECTION, TEVENT extends BaseEvent>(
-    projectionName: string,
     retrieveAggregateEvents: (id?: string) => Promise<EventStoreResult<PersistedProjection<TPROJECTION, TEVENT>>>,
     hydrateProjection: (state: PersistedProjection<TPROJECTION, TEVENT>) => TPROJECTION,
     snapshotProjection: (projectionName: string, state: TPROJECTION, latestEventId: string, lastSnapshotEventId: string) => Promise<EventStoreResult<null>>,
@@ -124,10 +122,10 @@ const getNamedProjectionWorkflow = <TPROJECTION, TEVENT extends BaseEvent>(
 
         if (SafeArray(existingEventsResult.data.events)) {
             await snapshotProjection(
-                projectionName,
+                id,
                 projection,
                 existingEventsResult.data.events.slice(-1)[0].id,
-                existingEventsResult.data.snapshot?.lastConsideredEvent ?? "a_1"
+                existingEventsResult.data.snapshot?.lastConsideredEvent ?? "1_a"
             )
         };
 
@@ -151,7 +149,7 @@ const getGlobalProjectionWorkflow = <TPROJECTION, TEVENT extends BaseEvent>(
                 projectionName,
                 projection,
                 existingEventsResult.data.events.slice(-1)[0].id,
-                existingEventsResult.data.snapshot?.lastConsideredEvent ?? "a_1"
+                existingEventsResult.data.snapshot?.lastConsideredEvent ?? "1_a"
             )
         };
 

@@ -6,11 +6,11 @@ import anyTest from 'ava';
 
 import { Aggregate } from '../@types/Aggregate';
 import { LittleEsEvent } from '../@types/LittleEsEvent';
-import { ID_SEPARATOR } from '../@types/LittleEsEventMetadata';
 import { Snapshot } from '../@types/Snapshot';
 
 import { createAggregate } from './aggregate';
 import { aggregateEventHandlers, commandHandlers, mockPersistanceHandler, Product, ProductCommand, ProductEvent } from './testdata.spec';
+import { ID_SEPARATOR } from './util';
 
 const test = anyTest as TestInterface<{
     events: LittleEsEvent<ProductEvent>[],
