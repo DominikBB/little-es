@@ -1,8 +1,7 @@
 /* eslint-disable functional/immutable-data */
 /* eslint-disable functional/prefer-readonly-type */
 
-import { TestInterface } from 'ava';
-import anyTest from 'ava';
+import anyTest, { TestFn } from 'ava';
 
 import { Aggregate } from '../@types/Aggregate';
 import { LittleEsEvent } from '../@types/LittleEsEvent';
@@ -12,7 +11,7 @@ import { createAggregate } from './aggregate';
 import { aggregateEventHandlers, commandHandlers, mockPersistanceHandler, Product, ProductCommand, ProductEvent } from './testdata.spec';
 import { ID_SEPARATOR } from './util';
 
-const test = anyTest as TestInterface<{
+const test = anyTest as TestFn<{
     events: LittleEsEvent<ProductEvent>[],
     snapshots: Snapshot<Product>[],
     published: LittleEsEvent<ProductEvent & { topic: string }>[]

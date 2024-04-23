@@ -1,6 +1,6 @@
 /* eslint-disable functional/immutable-data */
 /* eslint-disable functional/prefer-readonly-type */
-import anyTest, { TestInterface } from 'ava';
+import anyTest, { TestFn } from 'ava';
 
 import { LittleEsEvent } from '../@types/LittleEsEvent';
 import { NamedProjection } from '../@types/NamedProjection';
@@ -9,7 +9,7 @@ import { Snapshot } from '../@types/Snapshot';
 import { createNamedProjection } from './projection';
 import { mockPersistanceHandler, ProductEvent, ProductHistoryProjection, projectionTestEventData } from './testdata.spec';
 
-const namedProjectionTests = anyTest as TestInterface<{
+const namedProjectionTests = anyTest as TestFn<{
     events: LittleEsEvent<ProductEvent>[],
     snapshots: Snapshot<ProductHistoryProjection>[],
     sut: NamedProjection<ProductHistoryProjection>

@@ -1,6 +1,6 @@
 /* eslint-disable functional/immutable-data */
 /* eslint-disable functional/prefer-readonly-type */
-import anyTest, { TestInterface } from 'ava';
+import anyTest, { TestFn } from 'ava';
 
 import { GlobalProjection } from '../@types/GlobalProjection';
 import { LittleEsEvent } from '../@types/LittleEsEvent';
@@ -9,7 +9,7 @@ import { Snapshot } from '../@types/Snapshot';
 import { createGlobalProjection } from './projection';
 import { mockPersistanceHandler, ProductEvent, ProductPriceChangesGlobalProjection, projectionTestEventData } from './testdata.spec';
 
-const globalProjectionTests = anyTest as TestInterface<{ events: LittleEsEvent<ProductEvent>[], snapshots: Snapshot<ProductPriceChangesGlobalProjection>[], sut: GlobalProjection<ProductPriceChangesGlobalProjection> }>;
+const globalProjectionTests = anyTest as TestFn<{ events: LittleEsEvent<ProductEvent>[], snapshots: Snapshot<ProductPriceChangesGlobalProjection>[], sut: GlobalProjection<ProductPriceChangesGlobalProjection> }>;
 
 globalProjectionTests.beforeEach(t => {
     t.context.events = []
