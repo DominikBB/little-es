@@ -61,7 +61,7 @@ What's in the box:
 - Projection versioning
 - Based on CloudEvents specification
 - Nice error handling
-- **COMING SOON** - Ready made persistance and publishing layers
+- Some persistance layers
 
 # Page contents
 
@@ -71,6 +71,7 @@ What's in the box:
   - [The commands](#the-commands)
   - [The events](#the-events)
   - [The handlers](#the-handlers)
+  - [Ready made persistence handlers](#the-persistence-handlers)
   - [Putting it all together](#putting-it-together)
   - [Usage examples](#usage-examples)
 - [Advanced usage](#advanced-usage)
@@ -171,6 +172,12 @@ const todoEventHandler: EventHandlerEnum<Todo, Events> = {
 ```
 
 Notice how we described the behavior of a todo note, in the real world, this would be more complex. But the great thing about event sourcing is that the combination of above code completes the whole system and we don't really need to write any other business logic.
+
+### Ready made persistence handlers
+| Storage backend         | Repository     | Maintained by |
+|--------------|-----------|------------|
+| Cloudflare D1 | [little-es-cloudflare-persistence](https://github.com/DominikBB/little-es-cloudflare-persistence)     | DominikBB        |
+
 
 ### Putting it together
 
