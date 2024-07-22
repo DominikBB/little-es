@@ -56,12 +56,14 @@ What's in the box:
 - Command handling interfaces
 - Event persistance interfaces
 - Event publishing interfaces
-- Projections handling
-- Projection snapshots
-- Projection versioning
 - Based on CloudEvents specification
 - Nice error handling
 - Some persistance layers
+
+WIP:
+
+- Projections handling
+- Projection versioning
 
 # Page contents
 
@@ -222,106 +224,6 @@ console.log(result);
 // -> {success: true, data: {username: 'user1', todo: [{text: 'do something', done: false}]}}
 ```
 
-# Advanced usage
-
-Once you get the hang of the basics, you can extend your apps and really see the benefits of event sourcing.
-
-## Creating a named projection
-
-You will often need to produce different views of your data, sometimes using an identifier different then the one used by your main aggregate.
-
-Projections do not handle commands or produce events, they can only consume existing events.
-
-Imagine an e-commerce shop, where products are stored and identified by an SKU. Now the e-commerce shop needs to provide a view of products that fall into a category. We can create a `NamedProjection` for categories, and process product events as we see fit.
-
-```ts
-type productCategoryHandler = {
-    productCategorySet: (category, ev) => ({
-        ...category,
-        products: [...category.products, ev.data.sku]}),
-    productRemoved: (category, ev) => ({
-        ...category,
-        products: category.products.filter(p => p.sku !== ev.data.sku)}),
-    // Handle other relevant commands
-}
-
- const productCategories = createNamedProjection<ProductCategory, ProductEvent>({}
-      projectionName: "productCategory",
-      defaultProjection: { name: string, products: string[] },
-      eventHandler: (agg, ev) => productCategoryHandler[ev.type](agg, ev as any),
-      persistanceHandler: mockPersistanceHandler
-   })
-
-// Fetch state
-const result = await productCategories.get('shoes');
-console.log(result);
-// -> {success: true, data: {category: 'shoes', products[...]}}
-```
-
-> As long as you provide the same persistance handler to both the projection and the aggregate, they will both be created from the same events.
-
-## Creating a global projection
-
-Sometimes auditing, monitoring, operational and other requirements will require some special views of data.
-
-`GlobalProjection` provides another way to model data views from events. However, this kind of projection does not process a specific identifier, it will always process all events in the system.
-
-> Make sure not to include PII in global projections. Also avoid making these projections public in a multi-tenant app.
-
-Building on the e-commerce example, we can check which of our products are low in stock.
-
-```ts
-import { createGlobalProjection } from 'little-es'
-
-const lowStock = createGlobalProjection<LowStockProducts, ProductEvent>(
-     projectionName: "lowStockProducts",
-     defaultProjection: { name: string, products: Product },
-     eventHandler: (agg, ev) => ev.type === "productInventoryLow"
-        ? (lowStockProducts: [...lowStockProducts, ev.subject])
-        : agg,
-     persistanceHandler: mockPersistanceHandler
-  )
-
-// Fetch state
-const getLowStockProducts = await lowStock.get('shoes')
-console.log(getLowStockProducts);
-// -> {success: true, data: {products: [...]}}
-```
-
-## Improving performance with snapshots
-
-Snapshots capture the current state of your projections, and will then be used as a performance optimization when reading state. Instead of having the projection apply all events that happened each time its requested, it can start with a latest snapshot and apply events that happened after it.
-
-Keep in mind that snapshots are a bit like caching, and can become hard to manage as your data schema changes. `little-es` helps invalidate snapshots using versioning, however snapshots can still be considered as a bit of an anti-pattern in event sourcing.
-
-You can add a snapshot information object to configuration to enable them.
-
-```ts
-import { createGlobalProjection } from 'little-es'
-
-const lowStock = createGlobalProjection<LowStockProducts, ProductEvent>(
-     projectionName: "...",
-     defaultProjection: ...,
-     eventHandler: ...,
-     persistanceHandler: ...,
-     snapshot: {frequency: 5, schemaVersion: 1}
-  )
-```
-
-The above code will enable snapshots at a frequency of >5 events, and will tag the snapshot as version 1.
-
-### On frequency
-
-Frequency does not guarantee that a snapshot exists exactly every 5 events because they are only created upon invoking .get() on a projection. Since any amount of time can pass between these calls, any number of events can also pass.
-
-### Versions
-
-Versions should be moved up when you change the data schema of your projection. This will cause `little-es` to ignore snapshots with the older version.
-
-## Publishing events
-
-**TODO**
-
 ## Persistance handler interface
 
 To create a persistance handler, you need to fullfil the below type:
@@ -349,14 +251,6 @@ export type PersistanceHandler<TAGGREGATE, TEVENT extends BaseEvent> = {
 - **get** should get all events associated with a `subject`, this is used for hydrating an aggregate.
 - **getProjection** is used to hydrate a projection. It needs to make sure to return the latest snapshot if it exists, and if it does, return the events that are newer then the snapshot along side it.
 - **snapshot** should just persist a snapshot object, snapshots are uniquely identified by combination of `name`, `lastConsideredEvent`, `schemaVersion`
-
-## Publishing handler interface
-
-**TODO**
-
-# Design tips
-
-**TODO**
 
 # FAQ
 

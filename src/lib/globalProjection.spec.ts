@@ -32,7 +32,7 @@ globalProjectionTests("it can create a global projection out of events", async (
     t.log(result)
     t.is(result.success, true);
     if (result.success) {
-        t.is(result.data.count, 7)
+        t.is(result.data.count, 14)
     } else {
         t.fail()
     }
@@ -62,7 +62,7 @@ globalProjectionTests("it can create a global projection out of snapshots and ev
 })
 
 globalProjectionTests("it can snapshot a global projection out of events", async (t) => {
-    // with 7 stored events, 0 snapshots, the next get() call should produce a snapshot
+    // with 14 stored events, 0 snapshots, the next get() call should produce a snapshot
     await t.context.sut.get()
 
     const result = await t.context.sut.get()
