@@ -13,7 +13,7 @@ An event sourcing library for JS/TS.
 
 Crafted to stay **light, support edge runtime's, be 0 dependency, easily extensible**.
 
-⚠️ `little-es` is in early stages of development and future releases are likely to **have breaking changes.**
+⚠️ I decided to deprecate the `little-es` package because I have stopped using it is not quite production ready. Meanwhile, [Emmett](https://github.com/event-driven-io/emmett) is picking up steam as a great alternative, check it out!**
 
 ```bash
 npm i little-es
@@ -176,7 +176,7 @@ Notice how we described the behavior of a todo note, in the real world, this wou
 ### Ready made persistence handlers
 | Storage backend         | Repository     | Maintained by |
 |--------------|-----------|------------|
-| Cloudflare D1 | [little-es-cloudflare-persistence](https://github.com/DominikBB/little-es-cloudflare-persistence)     | DominikBB        |
+| Cloudflare D1 | [little-es-cloudflare-persistence](https://github.com/DominikBB/little-es-cloudflare-persistence)     | ⚠️ Deprecated        |
 
 
 ### Putting it together
